@@ -189,3 +189,24 @@ set backspace=indent,eol,start
 " coc
 let g:coc_disable_startup_warning = 1
 hi CocErrorHighlight ctermbg=167
+
+"MAC
+noremap § `
+noremap ± ~
+
+" Use new regular expression engine - Solve slowness for .ts files
+set re=0
+
+" Reduce update time
+set updatetime=750
+
+" Update cursor when changing modes
+if &term == 'xterm-256color' || &term == 'screen-256color'
+    let &t_SI = "\<Esc>[5 q"
+    let &t_EI = "\<Esc>[3 q"
+endif
+
+if exists('$TMUX')
+    let &t_EI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=0\x7\<Esc>\\"
+    let &t_SI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=1\x7\<Esc>\\"
+endif
