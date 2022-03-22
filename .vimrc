@@ -2,14 +2,19 @@
 call plug#begin('~/.vim/plugged')
 Plug 'rchiossi/spellcheck-ptbr.vim'
 Plug 'rchiossi/twilight-theme.vim'
-Plug 'junegunn/vim-easy-align'
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-Plug 'Kris2k/Zoomwin-vim'
-Plug 'itchyny/lightline.vim'
 Plug 'rchiossi/lightline-twilight-theme.vim'
+Plug 'itchyny/lightline.vim'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+Plug 'junegunn/vim-easy-align'
+Plug 'junegunn/gv.vim'
+Plug 'Kris2k/Zoomwin-vim'
 Plug 'tpope/vim-fugitive'
 Plug 'preservim/tagbar'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'AndrewRadev/splitjoin.vim'
+Plug 'alfredodeza/pytest.vim'
+Plug 'pixelneo/vim-python-docstring'
 call plug#end()
 
 "enable 256 colors in gnome-terminal
@@ -85,7 +90,9 @@ cabbr <expr> %% expand('%:p:h')
 ":set tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab
 
 " fzf to crtlp
-map <c-p> :FZF -i <CR>
+"map <c-p> :FZF -i <CR>
+map <c-p> :Files <CR>
+map <C-s> :Lines <CR>
 
 " English spellcheck
 nmap <F6> :setlocal spell! spelllang=en<cr>
@@ -189,6 +196,25 @@ set backspace=indent,eol,start
 " coc
 let g:coc_disable_startup_warning = 1
 hi CocErrorHighlight ctermbg=167
+
+function! ScanErrors()
+    if empty(filter(getwininfo(), 'v:val.loclist'))
+        :CocDiagnostics
+    else
+        lclose
+    endif
+endfunction
+
+nnoremap <silent> <F4> :call ScanErrors()<cr>
+
+" Pytest
+nnoremap <silent> <F5> :Pytest file<cr>
+
+" Start interactive EasyAlign in visual mode (e.g. vipga)
+xmap ga <Plug>(EasyAlign)
+
+" Start interactive EasyAlign for a motion/text object (e.g. gaip)
+nmap ga <Plug>(EasyAlign)
 
 "MAC
 noremap § `
