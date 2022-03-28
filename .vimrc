@@ -10,11 +10,16 @@ Plug 'junegunn/vim-easy-align'
 Plug 'junegunn/gv.vim'
 Plug 'Kris2k/Zoomwin-vim'
 Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-surround'
 Plug 'preservim/tagbar'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'AndrewRadev/splitjoin.vim'
 Plug 'alfredodeza/pytest.vim'
 Plug 'pixelneo/vim-python-docstring'
+Plug 'psf/black', { 'branch': 'stable' }
+Plug 'brentyi/isort.vim'
+Plug 'andviro/flake8-vim'
+"Plug 'github/copilot.vim'
 call plug#end()
 
 "enable 256 colors in gnome-terminal
@@ -24,6 +29,9 @@ endif
 
 " cursor line (slow scrolling)
 set cursorline
+
+" When searching, always keep 5 visible lines above and bellow
+set scrolloff=5
 
 " Numbers and Errors
 set number
@@ -89,15 +97,21 @@ cabbr <expr> %% expand('%:p:h')
 "for kdev
 ":set tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab
 
-" fzf to crtlp
-"map <c-p> :FZF -i <CR>
-map <c-p> :Files <CR>
-map <C-s> :Lines <CR>
+" more powerful backspacing
+set backspace=indent,eol,start
 
-" English spellcheck
-nmap <F6> :setlocal spell! spelllang=en<cr>
-" Portuguese spellcheck
-nmap <F7> :setlocal spell! spelllang=pt<cr>
+" fast scrolling and painting
+set ttyfast
+set lazyredraw
+
+" Show options on autocomplete for : commands
+set wildmenu wildmode=list:longest,full
+
+" Use system clipboard
+" Linux
+set clipboard=unnamedplus
+" Mac
+"set clipboard=unnamed
 
 " Enter to select autocomplete
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
@@ -114,30 +128,31 @@ nnoremap Q <nop>
 set backup
 
 " tell vim where to put its backup files
-set backupdir=/tmp/rodrigo/vim
+set backupdir=/Users/rchiossi/.vim_tmp
 
 " tell vim where to put swap files
-set dir=/tmp/rodrigo/vim
+set dir=/Users/rchiossi/.vim_tmp
 
-let g:lightline = {
-      \ 'colorscheme': 'twilight',
-      \ 'active': {
-      \   'left': [ [ 'mode', 'paste' ],
-      \             [ 'fugitive', 'readonly', 'filename', 'modified' ] ]
-      \ },
-      \ 'component': {
-      \   'readonly': '%{&readonly?"RO":""}',
-      \   'modified': '%{&filetype=="help"?"":&modified?"+":&modifiable?"":"-"}',
-      \   'fugitive': '%{exists("*fugitive#head")?fugitive#head():""}'
-      \ },
-      \ 'component_visible_condition': {
-      \   'readonly': '(&filetype!="help"&& &readonly)',
-      \   'modified': '(&filetype!="help"&&(&modified||!&modifiable))',
-      \   'fugitive': '(exists("*fugitive#head") && ""!=fugitive#head())'
-      \ },
-      \ 'separator': { 'left': "\ue0b0", 'right': "\ue0b2" },
-      \ 'subseparator': { 'left': "\ue0b1", 'right': "\ue0b3" }
-      \ }
+" Reduce update time
+set updatetime=750
+
+" Update cursor when changing modes
+if &term == 'xterm-256color' || &term == 'screen-256color'
+    let &t_SI = "\<Esc>[5 q"
+    let &t_EI = "\<Esc>[3 q"
+endif
+
+if exists('$TMUX')
+    let &t_EI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=0\x7\<Esc>\\"
+    let &t_SI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=1\x7\<Esc>\\"
+endif
+
+"MAC
+noremap § `
+noremap ± ~
+
+" Use new regular expression engine - Solve slowness for .ts files
+set re=0
 
 " View diff while writing commit message
 
@@ -190,10 +205,40 @@ augroup Binary
   au BufWritePost *.bin,*.rpm set nomod | endif
 augroup END
 
-" more powerful backspacing
-set backspace=indent,eol,start
+" Plugins -------------------------------------------------------------------
 
-" coc
+" English spellcheck
+nmap <F6> :setlocal spell! spelllang=en<cr>
+" Portuguese spellcheck
+nmap <F7> :setlocal spell! spelllang=pt<cr>
+
+" lightline plugin configuration
+let g:lightline = {
+      \ 'colorscheme': 'twilight',
+      \ 'active': {
+      \   'left': [ [ 'mode', 'paste' ],
+      \             [ 'fugitive', 'readonly', 'filename', 'modified' ] ]
+      \ },
+      \ 'component': {
+      \   'readonly': '%{&readonly?"RO":""}',
+      \   'modified': '%{&filetype=="help"?"":&modified?"+":&modifiable?"":"-"}',
+      \   'fugitive': '%{exists("*fugitive#head")?fugitive#head():""}'
+      \ },
+      \ 'component_visible_condition': {
+      \   'readonly': '(&filetype!="help"&& &readonly)',
+      \   'modified': '(&filetype!="help"&&(&modified||!&modifiable))',
+      \   'fugitive': '(exists("*fugitive#head") && ""!=fugitive#head())'
+      \ },
+      \ 'separator': { 'left': "\ue0b0", 'right': "\ue0b2" },
+      \ 'subseparator': { 'left': "\ue0b1", 'right': "\ue0b3" }
+      \ }
+
+" fzf to crtlp
+"map <c-p> :FZF -i <CR>
+map <c-p> :Files <CR>
+map <C-s> :Lines <CR>
+
+" coc plugin - (Run after install - :CoCInstall pyright json)
 let g:coc_disable_startup_warning = 1
 hi CocErrorHighlight ctermbg=167
 
@@ -216,23 +261,14 @@ xmap ga <Plug>(EasyAlign)
 " Start interactive EasyAlign for a motion/text object (e.g. gaip)
 nmap ga <Plug>(EasyAlign)
 
-"MAC
-noremap § `
-noremap ± ~
+" Black
+nnoremap <F9> :Black<CR>
+"autocmd BufWritePre *.py execute ':Black'
 
-" Use new regular expression engine - Solve slowness for .ts files
-set re=0
+"Isort
+nnoremap <F10> :Isort<CR>
+"autocmd BufWritePre *.py execute ':Isort'
 
-" Reduce update time
-set updatetime=750
-
-" Update cursor when changing modes
-if &term == 'xterm-256color' || &term == 'screen-256color'
-    let &t_SI = "\<Esc>[5 q"
-    let &t_EI = "\<Esc>[3 q"
-endif
-
-if exists('$TMUX')
-    let &t_EI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=0\x7\<Esc>\\"
-    let &t_SI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=1\x7\<Esc>\\"
-endif
+"Flake8
+nnoremap <F3> :PyFlake<CR>
+"autocmd BufWritePre *.py execute ':PyFlake'
