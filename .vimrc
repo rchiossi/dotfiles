@@ -109,9 +109,9 @@ set wildmenu wildmode=list:longest,full
 
 " Use system clipboard
 " Linux
-set clipboard=unnamedplus
+" set clipboard=unnamedplus
 " Mac
-"set clipboard=unnamed
+set clipboard=unnamed
 
 " Enter to select autocomplete
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
