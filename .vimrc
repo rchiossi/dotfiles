@@ -20,6 +20,7 @@ Plug 'psf/black', { 'branch': 'stable' }
 Plug 'brentyi/isort.vim'
 Plug 'andviro/flake8-vim'
 "Plug 'github/copilot.vim'
+Plug 'rust-lang/rust.vim'
 call plug#end()
 
 "enable 256 colors in gnome-terminal
@@ -238,7 +239,7 @@ let g:lightline = {
 map <c-p> :Files <CR>
 map <C-s> :Lines <CR>
 
-" coc plugin - (Run after install - :CoCInstall pyright json)
+" coc plugin - (Run after install - :CoCInstall coc-pyright coc-json coc-rust-analyzer)
 let g:coc_disable_startup_warning = 1
 hi CocErrorHighlight ctermbg=167
 
