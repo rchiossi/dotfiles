@@ -31,6 +31,12 @@ if $COLORTERM == 'gnome-terminal'
   set t_Co=256
 endif
 
+" powershell 256 colors
+set termguicolors
+
+" Turn off bell notifications
+set belloff=all
+
 " cursor line (slow scrolling)
 set cursorline
 
@@ -112,10 +118,13 @@ set lazyredraw
 set wildmenu wildmode=list:longest,full
 
 " Use system clipboard
-" Linux
-" set clipboard=unnamedplus
-" Mac
-set clipboard=unnamed
+if has('unix')
+    " Linux
+    set clipboard=unnamedplus
+else
+    " Mac and Windows
+    set clipboard=unnamed
+endif
 
 " Enter to select autocomplete
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
@@ -128,17 +137,18 @@ set completeopt=longest,menuone
 " Don't enter EX mode by accident
 nnoremap Q <nop>
 
-" tell vim to keep a backup file
-set backup
+" tell vim not to keep a backup file
+set nobackup
+set nowritebackup
 
 " tell vim where to put its backup files
-set backupdir=/Users/rchiossi/.vim_tmp
+" set backupdir=/Users/rchiossi/.vim_tmp
 
 " tell vim where to put swap files
-set dir=/Users/rchiossi/.vim_tmp
+" set dir=/Users/rchiossi/.vim_tmp
 
 " Reduce update time
-set updatetime=750
+set updatetime=300
 
 " Update cursor when changing modes
 if &term == 'xterm-256color' || &term == 'screen-256color'
@@ -151,9 +161,11 @@ if exists('$TMUX')
     let &t_SI = "\<Esc>Ptmux;\<Esc>\<Esc>]50;CursorShape=1\x7\<Esc>\\"
 endif
 
-"MAC
-noremap § `
-noremap ± ~
+"Remap MAC keys
+if has('macunix')
+    noremap § `
+    noremap ± ~
+endif
 
 " Use new regular expression engine - Solve slowness for .ts files
 set re=0
@@ -257,8 +269,6 @@ nmap <silent> gi <Plug>(coc-implementation)
 nmap <silent> gr <Plug>(coc-references)
 
 " Use K to show documentation in preview window.
-nnoremap <silent> K :call <SID>show_documentation()<CR>
-
 function! s:show_documentation()
   if (index(['vim','help'], &filetype) >= 0)
     execute 'h '.expand('<cword>')
@@ -268,7 +278,9 @@ function! s:show_documentation()
     execute '!' . &keywordprg . " " . expand('<cword>')
   endif
 endfunction
+nnoremap <silent> K :call <SID>show_documentation()<CR>
 
+" Trigger error scan on F4
 function! ScanErrors()
     if empty(filter(getwininfo(), 'v:val.loclist'))
         :CocDiagnostics
@@ -276,8 +288,18 @@ function! ScanErrors()
         lclose
     endif
 endfunction
-
 nnoremap <silent> <F4> :call ScanErrors()<cr>
+
+" Symbol renaming
+nmap <leader>rn <Plug>(coc-rename)
+
+" Highlight the symbol and its references when holding the cursor
+"autocmd ColorScheme * highlight CocHighlightText ctermbg=167 ctermfg=167
+hi CocHighlightText ctermfg=black ctermbg=107 guifg=black guibg=#8f9d6a
+autocmd CursorHold * silent call CocActionAsync('highlight')
+
+" provide custom statusline: lightline.vim, vim-airline
+set statusline^=%{coc#status()}%{get(b:,'coc_current_function','')}
 
 " Pytest
 nnoremap <silent> <F5> :Pytest file<cr>
