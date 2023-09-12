@@ -118,13 +118,10 @@ set lazyredraw
 set wildmenu wildmode=list:longest,full
 
 " Use system clipboard
-if has('unix')
-    " Linux
-    set clipboard=unnamedplus
-else
-    " Mac and Windows
-    set clipboard=unnamed
-endif
+" Linux
+" set clipboard=unnamedplus
+" Mac and Windows
+set clipboard=unnamed
 
 " Enter to select autocomplete
 inoremap <expr> <CR> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
@@ -162,10 +159,8 @@ if exists('$TMUX')
 endif
 
 "Remap MAC keys
-if has('macunix')
-    noremap § `
-    noremap ± ~
-endif
+noremap § `
+noremap ± ~
 
 " Use new regular expression engine - Solve slowness for .ts files
 set re=0
