@@ -138,6 +138,9 @@ nnoremap Q <nop>
 set nobackup
 set nowritebackup
 
+" tell vim not to use swap file
+set noswapfile
+
 " tell vim where to put its backup files
 " set backupdir=/Users/rchiossi/.vim_tmp
 
@@ -251,7 +254,19 @@ map <C-s> :Lines <CR>
 
 " coc plugin - (Run after install - :CoCInstall coc-pyright coc-json coc-rust-analyzer)
 let g:coc_disable_startup_warning = 1
-hi CocErrorHighlight ctermbg=167
+
+" Error Color
+let &t_Cs = "\e[4:3m"
+let &t_Ce = "\e[4:0m"
+
+"hi CocErrorHighlight ctermbg=167
+"hi default link CocErrorHighlight   CocUnderline
+hi CocErrorHighlight term=undercurl cterm=undercurl ctermul=red gui=undercurl guisp=red guifg=NONE guibg=NONE ctermfg=NONE ctermbg=NONE
+"hi CocErrorHighlight term=underline cterm=underline ctermul=red gui=underline guisp=red
+
+
+" Warning Color
+" hi CocW
 
 " Use `[g` and `]g` to navigate diagnostics
 nmap <silent> [g <Plug>(coc-diagnostic-prev)
@@ -292,6 +307,9 @@ nmap <leader>rn <Plug>(coc-rename)
 "autocmd ColorScheme * highlight CocHighlightText ctermbg=167 ctermfg=167
 hi CocHighlightText ctermfg=black ctermbg=107 guifg=black guibg=#8f9d6a
 autocmd CursorHold * silent call CocActionAsync('highlight')
+
+" Inline type hinting color
+hi CocInlayHint ctermbg=Black ctermfg=59 guibg=#1e1e1e guifg=#868686
 
 " provide custom statusline: lightline.vim, vim-airline
 set statusline^=%{coc#status()}%{get(b:,'coc_current_function','')}
