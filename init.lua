@@ -410,7 +410,17 @@ require('onedark').setup  {
     },
 }
 require('onedark').load()
-require('lualine').setup {}
+-- Swap NORMAL (green) and INSERT (blue) colors in the lualine onedark theme
+local onedark_lualine = require('lualine.themes.onedark')
+local normal_a = onedark_lualine.normal.a
+onedark_lualine.normal.a = onedark_lualine.insert.a
+onedark_lualine.insert.a = normal_a
+
+require('lualine').setup {
+  options = {
+    theme = onedark_lualine,
+  },
+}
 
 -- [[ Configure Devicons ]]
 require('nvim-web-devicons').setup {
