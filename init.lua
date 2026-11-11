@@ -124,7 +124,7 @@ require('lazy').setup({
   -- Fuzzy Finder (files, lsp, etc)
   {
     'nvim-telescope/telescope.nvim',
-    branch = '0.1.x',
+    version = '*',
     dependencies = {
       'nvim-lua/plenary.nvim',
       -- Fuzzy Finder Algorithm which requires local dependencies to be built.
@@ -144,81 +144,91 @@ require('lazy').setup({
 
   {
     -- Highlight, edit, and navigate code
+    -- NOTE: nvim-treesitter's `main` branch is a rewrite: setup() only takes `install_dir`.
+    --       Parsers are installed with install(), and highlighting/indent are enabled per
+    --       buffer below. Installing parsers requires the `tree-sitter` CLI and a C compiler.
     'nvim-treesitter/nvim-treesitter',
-    dependencies = {
-      'nvim-treesitter/nvim-treesitter-textobjects',
-    },
+    branch = 'main',
+    lazy = false,
     build = ':TSUpdate',
     config = function()
-      require('nvim-treesitter').setup {
-        -- Add languages to be installed here that you want installed for treesitter
-        ensure_installed = { 'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript', 'vimdoc', 'vim', 'graphql' },
+      -- Languages to install (no-op for the ones already installed)
+      require('nvim-treesitter').install {
+        'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript',
+        'vimdoc', 'vim', 'graphql', 'java',
+      }
 
-        -- Install parsers synchronously (only applied to `ensure_installed`)
-        sync_install = false,
+      -- Enable treesitter highlighting and indentation for any buffer that has a parser
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('UserTreesitter', { clear = true }),
+        callback = function(args)
+          if pcall(vim.treesitter.start, args.buf) then
+            vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
+      })
 
-        -- Autoinstall languages that are not installed. Defaults to false (but you can change for yourself!)
-        auto_install = false,
+      -- Incremental selection is built into Neovim 0.12 (`an` / `in` in visual mode).
+      -- Keep the old keys on top of it.
+      vim.keymap.set('n', '<c-space>', 'van', { remap = true, desc = 'Start treesitter selection' })
+      vim.keymap.set('x', '<c-space>', 'an', { remap = true, desc = 'Expand treesitter selection' })
+      vim.keymap.set('x', '<M-space>', 'in', { remap = true, desc = 'Shrink treesitter selection' })
+    end,
+  },
 
-        -- List of parsers to ignore installing (or "all")
-        ignore_install = { },
-
-        highlight = { enable = true },
-        indent = { enable = true },
-        incremental_selection = {
-          enable = true,
-          keymaps = {
-            init_selection = '<c-space>',
-            node_incremental = '<c-space>',
-            scope_incremental = '<c-s>',
-            node_decremental = '<M-space>',
-          },
+  {
+    'nvim-treesitter/nvim-treesitter-textobjects',
+    branch = 'main',
+    dependencies = { 'nvim-treesitter/nvim-treesitter' },
+    config = function()
+      require('nvim-treesitter-textobjects').setup {
+        select = {
+          lookahead = true, -- Automatically jump forward to textobj, similar to targets.vim
         },
-        textobjects = {
-          select = {
-            enable = true,
-            lookahead = true, -- Automatically jump forward to textobj, similar to targets.vim
-            keymaps = {
-              -- You can use the capture groups defined in textobjects.scm
-              ['aa'] = '@parameter.outer',
-              ['ia'] = '@parameter.inner',
-              ['af'] = '@function.outer',
-              ['if'] = '@function.inner',
-              ['ac'] = '@class.outer',
-              ['ic'] = '@class.inner',
-            },
-          },
-          move = {
-            enable = true,
-            set_jumps = true, -- whether to set jumps in the jumplist
-            goto_next_start = {
-              [']m'] = '@function.outer',
-              [']]'] = '@class.outer',
-            },
-            goto_next_end = {
-              [']M'] = '@function.outer',
-              [']['] = '@class.outer',
-            },
-            goto_previous_start = {
-              ['[m'] = '@function.outer',
-              ['[['] = '@class.outer',
-            },
-            goto_previous_end = {
-              ['[M'] = '@function.outer',
-              ['[]'] = '@class.outer',
-            },
-          },
-          swap = {
-            enable = true,
-            swap_next = {
-              ['<leader>a'] = '@parameter.inner',
-            },
-            swap_previous = {
-              ['<leader>A'] = '@parameter.inner',
-            },
-          },
+        move = {
+          set_jumps = true, -- whether to set jumps in the jumplist
         },
       }
+
+      local select = require 'nvim-treesitter-textobjects.select'
+      local move = require 'nvim-treesitter-textobjects.move'
+      local swap = require 'nvim-treesitter-textobjects.swap'
+
+      -- You can use the capture groups defined in textobjects.scm
+      for keys, query in pairs {
+        ['aa'] = '@parameter.outer',
+        ['ia'] = '@parameter.inner',
+        ['af'] = '@function.outer',
+        ['if'] = '@function.inner',
+        ['ac'] = '@class.outer',
+        ['ic'] = '@class.inner',
+      } do
+        vim.keymap.set({ 'x', 'o' }, keys, function()
+          select.select_textobject(query, 'textobjects')
+        end, { desc = 'Select ' .. query })
+      end
+
+      for keys, m in pairs {
+        [']m'] = { move.goto_next_start, '@function.outer' },
+        [']]'] = { move.goto_next_start, '@class.outer' },
+        [']M'] = { move.goto_next_end, '@function.outer' },
+        ['[]'] = { move.goto_previous_end, '@class.outer' },
+        ['[m'] = { move.goto_previous_start, '@function.outer' },
+        ['[['] = { move.goto_previous_start, '@class.outer' },
+        ['[M'] = { move.goto_previous_end, '@function.outer' },
+        [']['] = { move.goto_next_end, '@class.outer' },
+      } do
+        vim.keymap.set({ 'n', 'x', 'o' }, keys, function()
+          m[1](m[2], 'textobjects')
+        end, { desc = 'Move to ' .. m[2] })
+      end
+
+      vim.keymap.set('n', '<leader>a', function()
+        swap.swap_next '@parameter.inner'
+      end, { desc = 'Swap with next parameter' })
+      vim.keymap.set('n', '<leader>A', function()
+        swap.swap_previous '@parameter.inner'
+      end, { desc = 'Swap with previous parameter' })
     end,
   },
 
@@ -241,6 +251,14 @@ require('lazy').setup({
 
   'karb94/neoscroll.nvim',
   'mechatroner/rainbow_csv',
+
+  {
+    'nvim-java/nvim-java',
+    config = function()
+      require('java').setup()
+      vim.lsp.enable('jdtls')
+    end,
+  }
 
 }, {})
 
@@ -512,6 +530,14 @@ local on_attach = function(_, bufnr)
   end, { desc = 'Format current buffer with LSP' })
 end
 
+-- Attach keybinds to all buffers
+vim.api.nvim_create_autocmd('LspAttach', {
+  group = vim.api.nvim_create_augroup('UserLspKeymaps', { clear = true }),
+  callback = function(args)
+    on_attach(vim.lsp.get_client_by_id(args.data.client_id), args.buf)
+  end,
+})
+
 -- Enable the following language servers
 local servers = {
   -- clangd = {},
@@ -561,7 +587,6 @@ mason_lspconfig.setup {
     function(server_name)
       require('lspconfig')[server_name].setup {
         capabilities = capabilities,
-        on_attach = on_attach,
         settings = servers[server_name],
         filetypes = (servers[server_name] or {}).filetypes,
       }
