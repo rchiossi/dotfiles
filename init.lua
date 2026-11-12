@@ -255,7 +255,14 @@ require('lazy').setup({
   {
     'nvim-java/nvim-java',
     config = function()
-      require('java').setup()
+      -- Run jdtls on the SDKMAN default JDK instead of nvim-java's bundled one.
+      -- jdtls 1.54 needs JDK 21+, so keep `sdk default java` at 21 or newer.
+      require('java').setup({
+        jdk = {
+          auto_install = false,
+          path = (vim.env.SDKMAN_DIR or (vim.env.HOME .. '/.sdkman')) .. '/candidates/java/current',
+        },
+      })
       vim.lsp.enable('jdtls')
     end,
   }
