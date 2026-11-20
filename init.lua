@@ -155,7 +155,7 @@ require('lazy').setup({
       -- Languages to install (no-op for the ones already installed)
       require('nvim-treesitter').install {
         'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript',
-        'vimdoc', 'vim', 'graphql', 'java',
+        'vimdoc', 'vim', 'graphql', 'java', 'gomod', 'gosum', 'gowork',
       }
 
       -- Enable treesitter highlighting and indentation for any buffer that has a parser
@@ -552,7 +552,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
 -- Enable the following language servers
 local servers = {
   -- clangd = {},
-  -- gopls = {},
+  gopls = {}, -- configured below with vim.lsp.config
   pyright = {
     settings = {
       pyright = {
@@ -604,6 +604,47 @@ mason_lspconfig.setup {
     end
   },
 }
+
+-- [[ Configure Go ]]
+-- mason-lspconfig v2 enables installed servers with vim.lsp.enable(), so gopls
+-- settings go through vim.lsp.config.
+vim.lsp.config('gopls', {
+  capabilities = capabilities,
+  settings = {
+    gopls = {
+      staticcheck = true,
+      usePlaceholders = true,
+      completeUnimported = true,
+      analyses = {
+        unusedparams = true,
+        unusedwrite = true,
+        nilness = true,
+        shadow = true,
+      },
+    },
+  },
+})
+
+-- Organize imports and format Go files on save (like goimports)
+vim.api.nvim_create_autocmd('BufWritePre', {
+  group = vim.api.nvim_create_augroup('UserGoFormat', { clear = true }),
+  pattern = '*.go',
+  callback = function(args)
+    local client = vim.lsp.get_clients({ bufnr = args.buf, name = 'gopls' })[1]
+    if not client then
+      return
+    end
+    local params = vim.lsp.util.make_range_params(0, client.offset_encoding)
+    params.context = { only = { 'source.organizeImports' }, diagnostics = {} }
+    local res = client:request_sync('textDocument/codeAction', params, 3000, args.buf)
+    for _, action in ipairs(res and res.result or {}) do
+      if action.edit then
+        vim.lsp.util.apply_workspace_edit(action.edit, client.offset_encoding)
+      end
+    end
+    vim.lsp.buf.format({ bufnr = args.buf, id = client.id, timeout_ms = 3000 })
+  end,
+})
 
 -- [[ Configure nvim-cmp ]]
 -- See `:help cmp`
