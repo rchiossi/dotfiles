@@ -232,8 +232,15 @@ require('lazy').setup({
     end,
   },
 
-  -- Brownse source Tags
-  'preservim/tagbar',
+  -- Symbol outline sidebar (LSP symbols, falling back to treesitter)
+  {
+    'stevearc/aerial.nvim',
+    dependencies = { 'nvim-treesitter/nvim-treesitter' },
+    opts = {
+      backends = { 'lsp', 'treesitter', 'markdown', 'man' },
+      layout = { default_direction = 'right' },
+    },
+  },
 
   -- Errors on virtual lines
   'Maan2003/lsp_lines.nvim',
@@ -359,8 +366,8 @@ vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = tr
 -- In code files, only comments and strings are checked (via treesitter/syntax).
 vim.keymap.set('n', '<F6>', ':setlocal spell! spelllang=en<CR>', { desc = 'Toggle English spellcheck' })
 
--- [[ Configure Tagbar ]]
-vim.keymap.set('n', '<F8>', ':TagbarToggle<CR>', { desc = 'Toogle Tagbar' })
+-- [[ Configure Aerial ]]
+vim.keymap.set('n', '<F8>', '<cmd>AerialToggle!<CR>', { desc = 'Toggle symbol outline' })
 
 -- [[ Configure Telescope ]]
 -- See `:help telescope` and `:help telescope.setup()`
@@ -377,6 +384,7 @@ require('telescope').setup {
 
 -- Enable telescope fzf native, if installed
 pcall(require('telescope').load_extension, 'fzf')
+pcall(require('telescope').load_extension, 'aerial')
 
 -- See `:help telescope.builtin`
 vim.keymap.set('n', '<leader>?', require('telescope.builtin').oldfiles, { desc = '[?] Find recently opened files' })
