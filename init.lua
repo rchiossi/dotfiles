@@ -368,6 +368,8 @@ vim.keymap.set('n', '<F6>', ':setlocal spell! spelllang=en<CR>', { desc = 'Toggl
 
 -- [[ Configure Aerial ]]
 vim.keymap.set('n', '<F8>', '<cmd>AerialToggle!<CR>', { desc = 'Toggle symbol outline' })
+-- Works in any buffer (LSP or treesitter); <leader>dS is the LSP-only picker with every symbol kind
+vim.keymap.set('n', '<leader>ds', '<cmd>Telescope aerial<CR>', { desc = '[D]ocument [S]ymbols' })
 
 -- [[ Configure Telescope ]]
 -- See `:help telescope` and `:help telescope.setup()`
@@ -528,7 +530,7 @@ local on_attach = function(_, bufnr)
   nmap('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
   nmap('gI', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
   nmap('<leader>D', vim.lsp.buf.type_definition, 'Type [D]efinition')
-  nmap('<leader>ds', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols')
+  nmap('<leader>dS', require('telescope.builtin').lsp_document_symbols, '[D]ocument [S]ymbols (all LSP symbols)')
   nmap('<leader>ws', require('telescope.builtin').lsp_dynamic_workspace_symbols, '[W]orkspace [S]ymbols')
 
   -- See `:help K` for why this keymap
@@ -606,6 +608,14 @@ local servers = {
       },
     },
   },
+
+  -- Needs a Rust toolchain (cargo) to understand projects; install it with rustup
+  rust_analyzer = {},
+
+  -- TypeScript/JavaScript (uses the project's typescript if present, else a bundled one)
+  ts_ls = {},
+
+  -- Java (jdtls) is set up by the nvim-java plugin above, not here
 
   lua_ls = {
     settings = {
