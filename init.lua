@@ -42,11 +42,11 @@ require('lazy').setup({
       -- Useful status updates for LSP
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
       { 'j-hui/fidget.nvim', tag = 'legacy', opts = {} },
-
-      -- Additional lua configuration, makes nvim stuff amazing!
-      'folke/neodev.nvim',
     },
   },
+
+  -- Neovim Lua API completion and types for lua_ls
+  { 'folke/lazydev.nvim', ft = 'lua', opts = {} },
 
   {
     -- Autocompletion
@@ -155,7 +155,7 @@ require('lazy').setup({
       -- Languages to install (no-op for the ones already installed)
       require('nvim-treesitter').install {
         'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript',
-        'vimdoc', 'vim', 'graphql', 'java', 'gomod', 'gosum', 'gowork',
+        'vimdoc', 'vim', 'java', 'gomod', 'gosum', 'gowork',
       }
 
       -- Enable treesitter highlighting and indentation for any buffer that has a parser
@@ -549,81 +549,62 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
--- Enable the following language servers
+-- Language servers to install with Mason. Each entry is passed to vim.lsp.config(),
+-- and mason-lspconfig enables every installed server with vim.lsp.enable().
 local servers = {
-  -- clangd = {},
-  gopls = {}, -- configured below with vim.lsp.config
-  pyright = {
+  gopls = {
     settings = {
-      pyright = {
-        executionEnvironments = {root = "code"}
-      }
-    },
-  },
-  -- rust_analyzer = {},
-  -- tsserver = {},
-  -- html = { filetypes = { 'html', 'twig', 'hbs'} },
-
-  lua_ls = {
-    Lua = {
-      workspace = { checkThirdParty = false },
-      telemetry = { enable = false },
-      -- Disable missing fields warning in lua files
-      diagnostics = {
-        disable = { "missing-fields", "incomplete-signature-doc" },
-        unusedLocalExclude = { "_*" },
-        globals = { 'vim' },
-      }
-    },
-  },
-
-  graphql = {
-    filetypes = { "graphql", "typescriptreact", "javascriptreact", "typescript" },
-  }
-}
-
--- Setup neovim lua configuration
-require('neodev').setup()
-
--- nvim-cmp supports additional completion capabilities, so broadcast that to servers
-local capabilities = vim.lsp.protocol.make_client_capabilities()
-capabilities = require('cmp_nvim_lsp').default_capabilities(capabilities)
-
--- Ensure the servers above are installed
-local mason_lspconfig = require 'mason-lspconfig'
-
-mason_lspconfig.setup {
-  ensure_installed = vim.tbl_keys(servers),
-  handlers = {
-    function(server_name)
-      require('lspconfig')[server_name].setup {
-        capabilities = capabilities,
-        settings = servers[server_name],
-        filetypes = (servers[server_name] or {}).filetypes,
-      }
-    end
-  },
-}
-
--- [[ Configure Go ]]
--- mason-lspconfig v2 enables installed servers with vim.lsp.enable(), so gopls
--- settings go through vim.lsp.config.
-vim.lsp.config('gopls', {
-  capabilities = capabilities,
-  settings = {
-    gopls = {
-      staticcheck = true,
-      usePlaceholders = true,
-      completeUnimported = true,
-      analyses = {
-        unusedparams = true,
-        unusedwrite = true,
-        nilness = true,
-        shadow = true,
+      gopls = {
+        staticcheck = true,
+        usePlaceholders = true,
+        completeUnimported = true,
+        analyses = {
+          unusedparams = true,
+          unusedwrite = true,
+          nilness = true,
+          shadow = true,
+        },
       },
     },
   },
+
+  pyright = {
+    settings = {
+      pyright = {
+        executionEnvironments = { root = 'code' },
+      },
+    },
+  },
+
+  lua_ls = {
+    settings = {
+      Lua = {
+        workspace = { checkThirdParty = false },
+        telemetry = { enable = false },
+        -- Disable missing fields warning in lua files
+        diagnostics = {
+          disable = { 'missing-fields', 'incomplete-signature-doc' },
+          unusedLocalExclude = { '_*' },
+          globals = { 'vim' },
+        },
+      },
+    },
+  },
+}
+
+-- nvim-cmp supports additional completion capabilities, so broadcast that to all servers
+vim.lsp.config('*', {
+  capabilities = require('cmp_nvim_lsp').default_capabilities(),
 })
+
+for name, config in pairs(servers) do
+  vim.lsp.config(name, config)
+end
+
+-- Ensure the servers above are installed
+require('mason-lspconfig').setup {
+  ensure_installed = vim.tbl_keys(servers),
+}
 
 -- Organize imports and format Go files on save (like goimports)
 vim.api.nvim_create_autocmd('BufWritePre', {
