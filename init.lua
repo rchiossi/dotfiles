@@ -155,7 +155,7 @@ require('lazy').setup({
       -- Languages to install (no-op for the ones already installed)
       require('nvim-treesitter').install {
         'c', 'cpp', 'go', 'lua', 'python', 'rust', 'tsx', 'javascript', 'typescript',
-        'vimdoc', 'vim', 'java', 'gomod', 'gosum', 'gowork',
+        'vimdoc', 'vim', 'java', 'gomod', 'gosum', 'gowork', 'cmake', 'make', 'doxygen',
       }
 
       -- Enable treesitter highlighting and indentation for any buffer that has a parser
@@ -535,6 +535,11 @@ local on_attach = function(_, bufnr)
     print(vim.inspect(vim.lsp.buf.list_workspace_folders()))
   end, '[W]orkspace [L]ist Folders')
 
+  -- Toggle inlay hints (deduced types, parameter names)
+  nmap('<leader>th', function()
+    vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = bufnr }, { bufnr = bufnr })
+  end, '[T]oggle Inlay [H]ints')
+
   -- Create a command `:Format` local to the LSP buffer
   vim.api.nvim_buf_create_user_command(bufnr, 'Format', function(_)
     vim.lsp.buf.format()
@@ -545,7 +550,14 @@ end
 vim.api.nvim_create_autocmd('LspAttach', {
   group = vim.api.nvim_create_augroup('UserLspKeymaps', { clear = true }),
   callback = function(args)
-    on_attach(vim.lsp.get_client_by_id(args.data.client_id), args.buf)
+    local client = vim.lsp.get_client_by_id(args.data.client_id)
+    on_attach(client, args.buf)
+
+    if client and client.name == 'clangd' then
+      -- Command is defined by nvim-lspconfig's clangd config
+      vim.keymap.set('n', '<leader>ch', '<cmd>LspClangdSwitchSourceHeader<CR>',
+        { buffer = args.buf, desc = 'LSP: Switch [C] source/[H]eader' })
+    end
   end,
 })
 
@@ -565,6 +577,17 @@ local servers = {
           shadow = true,
         },
       },
+    },
+  },
+
+  clangd = {
+    cmd = {
+      'clangd',
+      '--background-index',
+      '--clang-tidy',
+      '--header-insertion=iwyu',
+      '--completion-style=detailed',
+      '--fallback-style=llvm',
     },
   },
 
@@ -601,10 +624,32 @@ for name, config in pairs(servers) do
   vim.lsp.config(name, config)
 end
 
+-- Prefer the system clangd (Xcode's knows the macOS SDK headers, Mason's upstream
+-- build does not), so only install clangd through Mason when there is none.
+local ensure_installed = vim.tbl_keys(servers)
+if vim.fn.executable 'clangd' == 1 then
+  ensure_installed = vim.tbl_filter(function(name)
+    return name ~= 'clangd'
+  end, ensure_installed)
+  vim.lsp.enable 'clangd'
+end
+
 -- Ensure the servers above are installed
 require('mason-lspconfig').setup {
-  ensure_installed = vim.tbl_keys(servers),
+  ensure_installed = ensure_installed,
 }
+
+-- Format C/C++ on save, but only in projects that define a style with .clang-format
+vim.api.nvim_create_autocmd('BufWritePre', {
+  group = vim.api.nvim_create_augroup('UserCppFormat', { clear = true }),
+  pattern = { '*.c', '*.h', '*.cc', '*.cpp', '*.cxx', '*.hh', '*.hpp', '*.hxx', '*.ipp', '*.tpp' },
+  callback = function(args)
+    local client = vim.lsp.get_clients({ bufnr = args.buf, name = 'clangd' })[1]
+    if client and vim.fs.root(args.buf, { '.clang-format', '_clang-format' }) then
+      vim.lsp.buf.format({ bufnr = args.buf, id = client.id, timeout_ms = 3000 })
+    end
+  end,
+})
 
 -- Organize imports and format Go files on save (like goimports)
 vim.api.nvim_create_autocmd('BufWritePre', {
