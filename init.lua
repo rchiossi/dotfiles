@@ -355,6 +355,10 @@ vim.keymap.set('i', 'jk', '<ESC>', { desc = 'Exit insert mode on movement keys' 
 vim.keymap.set('n', 'k', "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
+-- [[ Spellcheck ]]
+-- In code files, only comments and strings are checked (via treesitter/syntax).
+vim.keymap.set('n', '<F6>', ':setlocal spell! spelllang=en<CR>', { desc = 'Toggle English spellcheck' })
+
 -- [[ Configure Tagbar ]]
 vim.keymap.set('n', '<F8>', ':TagbarToggle<CR>', { desc = 'Toogle Tagbar' })
 
