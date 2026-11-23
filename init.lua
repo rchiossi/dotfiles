@@ -577,6 +577,8 @@ local servers = {
   gopls = {
     settings = {
       gopls = {
+        -- Load files behind these build tags (e.g. //go:build integration test suites)
+        buildFlags = { '-tags=integration' },
         staticcheck = true,
         usePlaceholders = true,
         completeUnimported = true,
